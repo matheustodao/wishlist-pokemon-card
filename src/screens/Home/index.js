@@ -1,37 +1,46 @@
-import React, { useEffect, useState, useCallback } from 'react'
-import { FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react'
+import { Text } from 'react-native';
+import { ContainerGlobal, List } from '../../assets/styles/GlobalStyle';
 import ListCard from '../../components/ListCard';
 import PokeService from '../../services/PokeService';
-import { Container } from './styled';
 
+const LIMIT = 5
 export default function Home() {
   const [pokemons, setPokemons] = useState([]);
-  const [offset, setOffset] = useState(0);
+  const [offset, setOffset] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const loadPokemons = useCallback(async () => {
-    const response = await PokeService.getAll({ limit: 5, offset });
-    setPokemons(response.results);
-  }, [])
+  async function loadPokemons() {
+    if (isLoading) {
+      return (
+        <Text>Loading...</Text>
+      )
+    }
+    setIsLoading(true);
+    const response = await PokeService.getAll({ limit: LIMIT, offset });
+    setPokemons((prevState) => prevState.concat(...response.results));
+    setOffset((prevState) => prevState  + LIMIT);
+    setIsLoading(false)
+  }
 
   useEffect(() => {
     loadPokemons();
-  }, [loadPokemons]);
+  }, []);
 
   return (
-    <Container>
-      <FlatList
+    <ContainerGlobal>
+      <List
         data={pokemons}
         keyExtractor={pokemon => pokemon.name}
         showsVerticalScrollIndicator={false}
-        onEndReachedThreshold={0.5}
-        onEndReached={() => {
-          setOffset((prevState) => prevState + 1)
-          return loadPokemons()
-        }}
+        alignItems="center"
         renderItem={({ item: pokemon }) => (
           <ListCard pokemonURL={pokemon.url}/>
         )}
+        onEndReached={loadPokemons}
+        onEndReachedThreshold={0.2}
+        ListFooterComponent={isLoading && <Text>Loading...</Text>}
       />
-    </Container>
+    </ContainerGlobal>
   )
 }
